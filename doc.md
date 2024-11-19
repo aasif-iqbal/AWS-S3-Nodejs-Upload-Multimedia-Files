@@ -161,3 +161,6 @@ s3.getSignedUrl('putObject', params, (err, url) => {
 - Signed URLs inherit the permissions of the IAM user or role used to generate them.
 - Ensure the expiration time is appropriate for your use case to balance usability and security.
 - For uploading large files, consider using **multipart uploads** or S3 Transfer Acceleration for better performance.
+
+
+[Generate presigned-url-modular aws-sdk-javascript](https://aws.amazon.com/blogs/developer/generate-presigned-url-modular-aws-sdk-javascript/)

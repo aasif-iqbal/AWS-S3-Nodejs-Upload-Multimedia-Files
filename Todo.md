@@ -4,5 +4,9 @@
 4. Create IAM user. add policy for s3 bucket - Read[Get] - Write[Put, Delete] [✓]
 5. 
 
+Delete 
+Find id
+Delete from s3
+Delete from database
 
 [✓] - Done 

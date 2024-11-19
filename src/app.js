@@ -11,6 +11,7 @@ import {
   S3Client,
   PutObjectCommand,
   GetObjectCommand,
+  DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -48,11 +49,6 @@ const randomImageName = (bytes = 32) => {
   return crypto.randomBytes(bytes).toString("hex");
 };
 
-app.get("/", (req, res) => {
-  const data = { title: "Welcome to My App", message: "Hello, EJS with ES6!" };
-  res.render("index", data);
-});
-
 app.post("/posts", upload.single("image"), async (req, res) => {
   try {
     // Modify image with sharp - resize it to iphone portrait size
@@ -78,15 +74,16 @@ app.post("/posts", upload.single("image"), async (req, res) => {
       caption: req.body.caption,
     });
 
-    console.log("File uploaded successfully:", response);
-    res.status(200).send({ message: "File uploaded successfully", response });
+    res.redirect("/");
+    // console.log("File uploaded successfully:", response);
+    // res.status(200).send({ message: "File uploaded successfully", response });
   } catch (error) {
     console.error("Error uploading file:", error);
     res.status(500).send({ message: "Error uploading file", error });
   }
 });
 
-app.get("/api/posts", async (req, res) => {
+app.get("/", async (req, res) => {
   try {
     const posts = await IgPost.find();
 
@@ -100,11 +97,50 @@ app.get("/api/posts", async (req, res) => {
       const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
       post.imageUrl = url;
     }
-
-    res.status(200).send({ message: "Posts fetched successfully", posts });
+    res.render('index', {posts});
+    // res.status(200).send({ message: "Posts fetched successfully", posts });
   } catch (error) {
     console.error("Error fetching posts:", error);
     res.status(500).send({ message: "Error fetching posts", error });
   }
 });
+
+app.get('/newPost', (req, res) => {   
+  res.render('newPost');
+});
+
+app.post("/deletePost/:id", async (req, res) => {
+  try {    
+    const postId = req.params.id;
+    console.log(postId);
+    const post = await IgPost.findById(postId);
+    
+    if (!post) {
+      return res.status(404).send({ message: "Post not found" });
+    }    
+
+    // Delete the file from S3    
+    const deleteParams = {
+      Bucket: bucketName,
+      Key: post.image,
+    };    
+    
+    const deleteCommand = new DeleteObjectCommand(deleteParams);    
+    const deleteResponse = await s3.send(deleteCommand);
+    
+    if (!deleteResponse) {
+      return res.status(500).send({ message: "Error deleting file" });  
+    }
+    
+    // Delete the post from the database
+    await IgPost.deleteOne({ _id: postId });
+
+    res.redirect("/");
+    // res.status(200).send({ message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).send({ message: "Error deleting post", error });
+  }
+}); 
+
 export default app;
